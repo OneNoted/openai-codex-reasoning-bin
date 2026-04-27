@@ -52,6 +52,10 @@ PY
   cd "$src_dir/codex-rs"
   export RUSTUP_TOOLCHAIN=stable
   export CARGO_TARGET_DIR=target
+  # Packaging-oriented release overrides: still optimized, but much faster
+  # than the workspace default of fat LTO plus a single codegen unit.
+  export CARGO_PROFILE_RELEASE_LTO=thin
+  export CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
   cargo build --release \
     -p codex-cli \
     -p codex-exec \

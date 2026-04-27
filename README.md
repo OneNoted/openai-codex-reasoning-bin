@@ -31,6 +31,10 @@ GitHub Releases.
   publishes a GitHub Release in this repo,
   and pushes the flat AUR snapshot
 
+To keep binary release turnaround reasonable, asset builds override the
+workspace release profile from fat LTO / single codegen-unit settings to a
+packaging-oriented profile using thin LTO and higher codegen parallelism.
+
 ## Validation
 
 ```bash
