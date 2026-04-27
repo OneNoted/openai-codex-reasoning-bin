@@ -1,0 +1,130 @@
+name: release
+
+on:
+  schedule:
+    - cron: '29 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      force_release:
+        description: Force a rebuild even if the fork tag has not changed
+        required: false
+        default: false
+        type: boolean
+      fork_tag:
+        description: Override the fork tag to package
+        required: false
+        type: string
+      pkgrel_override:
+        description: Override the Arch pkgrel for the release
+        required: false
+        type: string
+
+concurrency:
+  group: openai-codex-reasoning-bin-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Detect desired release
+        id: plan
+        env:
+          FORCE_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.force_release || 'false' }}
+          FORK_TAG_OVERRIDE: ${{ github.event_name == 'workflow_dispatch' && inputs.fork_tag || '' }}
+          PKGREL_OVERRIDE: ${{ github.event_name == 'workflow_dispatch' && inputs.pkgrel_override || '' }}
+        run: ./scripts/detect-release.sh >> "$GITHUB_OUTPUT"
+
+      - name: Explain release decision
+        run: |
+          printf 'should_release=%s\n' '${{ steps.plan.outputs.should_release }}'
+          printf 'pkgver=%s\n' '${{ steps.plan.outputs.pkgver }}'
+          printf 'pkgrel=%s\n' '${{ steps.plan.outputs.pkgrel }}'
+          printf 'fork_tag=%s\n' '${{ steps.plan.outputs.fork_tag }}'
+          printf 'release_tag=%s\n' '${{ steps.plan.outputs.release_tag }}'
+          printf 'reason=%s\n' '${{ steps.plan.outputs.reason }}'
+
+      - name: Build release asset
+        if: steps.plan.outputs.should_release == 'true'
+        run: |
+          ./scripts/run-in-arch-container.sh '
+            pacman -Syu --noconfirm \
+              base-devel \
+              cargo \
+              clang \
+              curl \
+              diffutils \
+              git \
+              openssl \
+              pkgconf \
+              python \
+              rustup \
+              zstd
+            rustup default stable
+            ./scripts/build-asset.sh "${{ steps.plan.outputs.pkgver }}" "${{ steps.plan.outputs.pkgrel }}" "${{ steps.plan.outputs.fork_tag }}"
+            ./scripts/smoke-asset.sh "dist/${{ steps.plan.outputs.asset_name }}" "${{ steps.plan.outputs.pkgver }}"
+            ./scripts/update-aur-metadata.sh \
+              "${{ steps.plan.outputs.pkgver }}" \
+              "${{ steps.plan.outputs.pkgrel }}" \
+              "${{ steps.plan.outputs.fork_tag }}" \
+              "dist/${{ steps.plan.outputs.asset_name }}"
+          '
+
+      - name: Commit release metadata
+        if: steps.plan.outputs.should_release == 'true'
+        id: commit
+        run: |
+          repo_dir=${GITHUB_WORKSPACE:?}
+
+          git config --global --add safe.directory "$repo_dir"
+          git -C "$repo_dir" config user.name "Jonatan Jonasson"
+          git -C "$repo_dir" config user.email "notes@madeingotland.com"
+          git -C "$repo_dir" add PKGBUILD .SRCINFO
+
+          if git -C "$repo_dir" diff --cached --quiet; then
+            commit_sha=$(git -C "$repo_dir" rev-parse HEAD)
+          else
+            git -C "$repo_dir" commit -m "chore: release openai-codex-reasoning-bin ${{ steps.plan.outputs.pkgver }}-${{ steps.plan.outputs.pkgrel }}"
+            git -C "$repo_dir" push origin HEAD:main
+            commit_sha=$(git -C "$repo_dir" rev-parse HEAD)
+          fi
+
+          printf 'commit_sha=%s\n' "$commit_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        if: steps.plan.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.plan.outputs.release_tag }}
+          target_commitish: ${{ steps.commit.outputs.commit_sha }}
+          files: |
+            dist/${{ steps.plan.outputs.asset_name }}
+            dist/${{ steps.plan.outputs.asset_name }}.sha256
+            PKGBUILD
+            .SRCINFO
+
+      - name: Load AUR SSH key
+        if: steps.plan.outputs.should_release == 'true'
+        uses: webfactory/ssh-agent@v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+
+      - name: Trust AUR host key
+        if: steps.plan.outputs.should_release == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
+
+      - name: Publish AUR metadata
+        if: steps.plan.outputs.should_release == 'true'
+        env:
+          AUR_REMOTE: ssh://aur@aur.archlinux.org/openai-codex-reasoning-bin.git
+        run: ./scripts/publish-aur.sh "$AUR_REMOTE"
