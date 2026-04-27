@@ -7,7 +7,7 @@ fork_tag=${3:?usage: update-aur-metadata.sh <pkgver> <pkgrel> <fork_tag> <asset>
 asset=${4:?usage: update-aur-metadata.sh <pkgver> <pkgrel> <fork_tag> <asset>}
 checksum=$(sha256sum "$asset" | awk '{print $1}')
 
-perl -0pi -e "s/^pkgver=.*/pkgver=${pkgver}/m; s/^pkgrel=.*/pkgrel=${pkgrel}/m; s/^_fork_tag='[^']*'/_fork_tag='${fork_tag}'/m; s/^_asset_name=\"[^\"]*\"/_asset_name=\"\\${pkgname}-${pkgver}-${pkgrel}-x86_64.tar.zst\"/m; s/^sha256sums=\('[^']*'\)/sha256sums=('${checksum}')/m" PKGBUILD
+perl -0pi -e "s/^pkgver=.*/pkgver=${pkgver}/m; s/^pkgrel=.*/pkgrel=${pkgrel}/m; s/^_fork_tag='[^']*'/_fork_tag='${fork_tag}'/m; s/^_asset_name=\"[^\"]*\"/_asset_name=\"\\\${pkgname}-${pkgver}-${pkgrel}-x86_64.tar.zst\"/m; s/^sha256sums=\('[^']*'\)/sha256sums=('${checksum}')/m" PKGBUILD
 
 print_srcinfo() {
   if [[ ${EUID} -ne 0 ]]; then
