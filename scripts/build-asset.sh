@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-pkgver=${1:?usage: build-asset.sh <pkgver> <pkgrel> <fork_tag> [out-dir]}
-pkgrel=${2:?usage: build-asset.sh <pkgver> <pkgrel> <fork_tag> [out-dir]}
-fork_tag=${3:?usage: build-asset.sh <pkgver> <pkgrel> <fork_tag> [out-dir]}
+pkgver=${1:?usage: build-asset.sh <pkgver> <pkgrel> <upstream_tag> [out-dir]}
+pkgrel=${2:?usage: build-asset.sh <pkgver> <pkgrel> <upstream_tag> [out-dir]}
+upstream_tag=${3:?usage: build-asset.sh <pkgver> <pkgrel> <upstream_tag> [out-dir]}
 out_dir=${4:-"$PWD/dist"}
 
 pkgname="openai-codex-reasoning-bin"
-source_repo="https://github.com/OneNoted/codex.git"
+source_repo="https://github.com/openai/codex.git"
 work_dir=$(mktemp -d)
 trap 'rm -rf "$work_dir"' EXIT
 
@@ -18,7 +18,8 @@ asset_path="${out_dir}/${asset_name}"
 
 mkdir -p "$out_dir" "$install_root"
 
-git clone --depth 1 --branch "$fork_tag" "$source_repo" "$src_dir"
+git clone --depth 1 --branch "$upstream_tag" "$source_repo" "$src_dir"
+patch -d "$src_dir" -Np1 -i "$PWD/default-raw-reasoning.patch"
 
 python3 - "$src_dir/codex-rs/Cargo.toml" "$pkgver" <<'PY'
 from pathlib import Path

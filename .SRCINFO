@@ -1,5 +1,5 @@
 pkgbase = openai-codex-reasoning-bin
-	pkgdesc = Prebuilt OpenAI Codex CLI fork with inline reasoning traces
+	pkgdesc = Prebuilt OpenAI Codex CLI with raw reasoning traces enabled by default
 	pkgver = 0.130.0
 	pkgrel = 1
 	url = https://github.com/OneNoted/openai-codex-reasoning-bin

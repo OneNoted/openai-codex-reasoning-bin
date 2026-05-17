@@ -1,7 +1,7 @@
 # openai-codex-reasoning-bin
 
-Binary AUR packaging repo for the OneNoted Codex fork that shows inline
-reasoning traces in the TUI.
+Binary AUR packaging repo for OpenAI Codex with raw reasoning traces enabled
+by default.
 
 ## Package contract
 
@@ -14,18 +14,21 @@ reasoning traces in the TUI.
 
 ## Source strategy
 
-This package builds a release asset from the latest fork tag matching:
+This package builds a release asset from the latest stable upstream tag
+matching:
 
-- `aur-v<upstream-version>-reasoning.<n>`
+- `rust-v<version>`
 
 The package metadata then points at the published asset hosted in this repo's
-GitHub Releases.
+GitHub Releases. The build applies `default-raw-reasoning.patch` before
+compilation so the binary keeps the downstream default without depending on a
+long-lived source fork.
 
 ## Release flow
 
 - `validate.yml` checks packaging metadata on push and pull requests
-- `release.yml` polls `OneNoted/codex` for the latest `aur-v*-reasoning.*` tag
-- when the fork tag changes:
+- `release.yml` polls `openai/codex` for the latest stable `rust-v*` tag
+- when the upstream tag changes:
   the workflow builds an `x86_64` release tarball,
   updates `PKGBUILD` and `.SRCINFO`,
   publishes a GitHub Release in this repo,

@@ -3,7 +3,7 @@
 pkgname=openai-codex-reasoning-bin
 pkgver=0.130.0
 pkgrel=1
-pkgdesc="Prebuilt OpenAI Codex CLI fork with inline reasoning traces"
+pkgdesc="Prebuilt OpenAI Codex CLI with raw reasoning traces enabled by default"
 arch=('x86_64')
 url="https://github.com/OneNoted/openai-codex-reasoning-bin"
 license=('Apache-2.0')
@@ -27,7 +27,6 @@ conflicts=(
 )
 replaces=('openai-codex-reasoning')
 
-_fork_tag='aur-v0.130.0-reasoning.1'
 _asset_name="${pkgname}-0.130.0-1-x86_64.tar.zst"
 source=(
   "${_asset_name}::${url}/releases/download/v${pkgver}-${pkgrel}/${_asset_name}"
