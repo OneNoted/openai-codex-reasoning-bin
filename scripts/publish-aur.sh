@@ -15,7 +15,7 @@ cp PKGBUILD .SRCINFO "$repo_dir/"
 
 git -C "$repo_dir" config user.name "${GIT_AUTHOR_NAME:-Jonatan Jonasson}"
 git -C "$repo_dir" config user.email "${GIT_AUTHOR_EMAIL:-notes@madeingotland.com}"
-git -C "$repo_dir" add PKGBUILD .SRCINFO
+git -C "$repo_dir" add -A .
 
 if git -C "$repo_dir" diff --cached --quiet; then
   printf 'AUR metadata already up to date for %s %s-%s\n' "$pkgname" "$pkgver" "$pkgrel"

@@ -6,6 +6,15 @@ pkgrel=${2:?usage: update-aur-metadata.sh <pkgver> <pkgrel> <asset>}
 asset=${3:?usage: update-aur-metadata.sh <pkgver> <pkgrel> <asset>}
 checksum=$(sha256sum "$asset" | awk '{print $1}')
 
+[[ "$pkgver" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+  echo "unexpected pkgver: $pkgver" >&2
+  exit 1
+}
+[[ "$pkgrel" =~ ^[1-9][0-9]*$ ]] || {
+  echo "unexpected pkgrel: $pkgrel" >&2
+  exit 1
+}
+
 perl -0pi -e "s/^pkgver=.*/pkgver=${pkgver}/m; s/^pkgrel=.*/pkgrel=${pkgrel}/m; s/^_asset_name=\"[^\"]*\"/_asset_name=\"\\\${pkgname}-${pkgver}-${pkgrel}-x86_64.tar.zst\"/m; s/^sha256sums=\('[^']*'\)/sha256sums=('${checksum}')/m" PKGBUILD
 
 print_srcinfo() {

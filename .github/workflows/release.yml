@@ -30,7 +30,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: main
           fetch-depth: 0
@@ -49,6 +49,7 @@ jobs:
           printf 'pkgver=%s\n' '${{ steps.plan.outputs.pkgver }}'
           printf 'pkgrel=%s\n' '${{ steps.plan.outputs.pkgrel }}'
           printf 'upstream_tag=%s\n' '${{ steps.plan.outputs.upstream_tag }}'
+          printf 'upstream_commit=%s\n' '${{ steps.plan.outputs.upstream_commit }}'
           printf 'release_tag=%s\n' '${{ steps.plan.outputs.release_tag }}'
           printf 'reason=%s\n' '${{ steps.plan.outputs.reason }}'
 
@@ -69,7 +70,7 @@ jobs:
               rustup \
               zstd
             rustup default stable
-            ./scripts/build-asset.sh "${{ steps.plan.outputs.pkgver }}" "${{ steps.plan.outputs.pkgrel }}" "${{ steps.plan.outputs.upstream_tag }}"
+            ./scripts/build-asset.sh "${{ steps.plan.outputs.pkgver }}" "${{ steps.plan.outputs.pkgrel }}" "${{ steps.plan.outputs.upstream_tag }}" "${{ steps.plan.outputs.upstream_commit }}"
             ./scripts/smoke-asset.sh "dist/${{ steps.plan.outputs.asset_name }}" "${{ steps.plan.outputs.pkgver }}"
             ./scripts/update-aur-metadata.sh \
               "${{ steps.plan.outputs.pkgver }}" \
@@ -100,7 +101,7 @@ jobs:
 
       - name: Publish GitHub Release
         if: steps.plan.outputs.should_release == 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: ${{ steps.plan.outputs.release_tag }}
           target_commitish: ${{ steps.commit.outputs.commit_sha }}
@@ -112,7 +113,7 @@ jobs:
 
       - name: Load AUR SSH key
         if: steps.plan.outputs.should_release == 'true'
-        uses: webfactory/ssh-agent@v0.10.0
+        uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
         with:
           ssh-private-key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
 
