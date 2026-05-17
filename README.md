@@ -20,9 +20,10 @@ matching:
 - `rust-v<version>`
 
 The package metadata then points at the published asset hosted in this repo's
-GitHub Releases. The build applies `default-raw-reasoning.patch` before
-compilation so the binary keeps the downstream default without depending on a
-long-lived source fork.
+GitHub Releases. The release workflow resolves that tag to an immutable
+upstream commit before building. The build applies
+`default-raw-reasoning.patch` before compilation so the binary keeps the
+downstream default without depending on a long-lived source fork.
 
 ## Release flow
 

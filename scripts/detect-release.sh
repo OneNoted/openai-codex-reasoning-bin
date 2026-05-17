@@ -7,13 +7,26 @@ current_pkgrel=$(awk -F= '/^pkgrel=/{print $2; exit}' PKGBUILD)
 force_release=${FORCE_RELEASE:-false}
 upstream_tag_override=${UPSTREAM_TAG_OVERRIDE:-}
 pkgrel_override=${PKGREL_OVERRIDE:-}
+source_repo="https://github.com/openai/codex.git"
 
 latest_upstream_tag() {
-  git ls-remote --refs --tags https://github.com/openai/codex.git 'rust-v*' |
+  git ls-remote --refs --tags "$source_repo" 'rust-v*' |
     awk '{sub("refs/tags/","",$2); print $2}' |
     grep -E '^rust-v[0-9]+\.[0-9]+\.[0-9]+$' |
     sort -V |
     tail -n 1
+}
+
+resolve_upstream_commit() {
+  local tag=${1:?tag required}
+  local commit
+
+  commit=$(git ls-remote "$source_repo" "refs/tags/${tag}^{}" | awk '{print $1}')
+  if [[ -z "$commit" ]]; then
+    commit=$(git ls-remote "$source_repo" "refs/tags/${tag}" | awk '{print $1}')
+  fi
+
+  printf '%s\n' "$commit"
 }
 
 if [[ -n "$upstream_tag_override" ]]; then
@@ -32,7 +45,18 @@ if [[ ! "$upstream_tag" =~ ^rust-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
   exit 1
 fi
 
+if [[ -n "$pkgrel_override" && ! "$pkgrel_override" =~ ^[1-9][0-9]*$ ]]; then
+  echo "unexpected pkgrel override: $pkgrel_override" >&2
+  exit 1
+fi
+
 pkgver=${BASH_REMATCH[1]}
+upstream_commit=$(resolve_upstream_commit "$upstream_tag")
+if [[ ! "$upstream_commit" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "failed to resolve upstream commit for $upstream_tag" >&2
+  exit 1
+fi
+
 release_tag="v${pkgver}-${pkgrel_override:-1}"
 asset_name="openai-codex-reasoning-bin-${pkgver}-${pkgrel_override:-1}-x86_64.tar.zst"
 should_release=false
@@ -61,6 +85,7 @@ cat <<EOF
 pkgver=$pkgver
 pkgrel=$pkgrel
 upstream_tag=$upstream_tag
+upstream_commit=$upstream_commit
 release_tag=$release_tag
 asset_name=$asset_name
 should_release=$should_release

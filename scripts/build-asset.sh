@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-pkgver=${1:?usage: build-asset.sh <pkgver> <pkgrel> <upstream_tag> [out-dir]}
-pkgrel=${2:?usage: build-asset.sh <pkgver> <pkgrel> <upstream_tag> [out-dir]}
-upstream_tag=${3:?usage: build-asset.sh <pkgver> <pkgrel> <upstream_tag> [out-dir]}
-out_dir=${4:-"$PWD/dist"}
+pkgver=${1:?usage: build-asset.sh <pkgver> <pkgrel> <upstream_tag> <upstream_commit> [out-dir]}
+pkgrel=${2:?usage: build-asset.sh <pkgver> <pkgrel> <upstream_tag> <upstream_commit> [out-dir]}
+upstream_tag=${3:?usage: build-asset.sh <pkgver> <pkgrel> <upstream_tag> <upstream_commit> [out-dir]}
+upstream_commit=${4:?usage: build-asset.sh <pkgver> <pkgrel> <upstream_tag> <upstream_commit> [out-dir]}
+out_dir=${5:-"$PWD/dist"}
 
 pkgname="openai-codex-reasoning-bin"
 source_repo="https://github.com/openai/codex.git"
@@ -18,7 +19,12 @@ asset_path="${out_dir}/${asset_name}"
 
 mkdir -p "$out_dir" "$install_root"
 
-git clone --depth 1 --branch "$upstream_tag" "$source_repo" "$src_dir"
+git clone --no-checkout --filter=blob:none "$source_repo" "$src_dir"
+git -C "$src_dir" checkout --detach "$upstream_commit"
+if [[ "$(git -C "$src_dir" describe --tags --exact-match HEAD)" != "$upstream_tag" ]]; then
+  echo "upstream commit does not match $upstream_tag" >&2
+  exit 1
+fi
 patch -d "$src_dir" -Np1 -i "$PWD/default-raw-reasoning.patch"
 
 python3 - "$src_dir/codex-rs/Cargo.toml" "$pkgver" <<'PY'
